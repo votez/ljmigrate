@@ -36,13 +36,14 @@ func main() {
 	client, _ := NewLJ(login, password)
 	defer client.Close()
 
+	fmt.Println("Logging in")
 	loginResponse, err := client.Login()
 	fmt.Println("Got response ", err)
 	if err != nil {
 		log.Fatal("Got error on Login", err)
 		panic(err)
 	}
-	fmt.Printf("Got userid %d, username %s, full name %s, validated %d", loginResponse.Userid, loginResponse.Username, loginResponse.FullName, loginResponse.IsValidated)
+	fmt.Printf("Got userid %d, username %s, full name %s, validated %d\n", loginResponse.Userid, loginResponse.Username, loginResponse.FullName, loginResponse.IsValidated)
 
 	dayCountsResponse, err := client.GetDayCounts()
 	if err != nil {

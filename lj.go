@@ -20,7 +20,7 @@ type LJEntry struct {
 	Poster    string `xmlrpc:"poster"`
 }
 
-type ljEditRequest struct {
+type LJEditRequest struct {
 	Username    string `xmlrpc:"username"`
 	Method      string `xmlrpc:"auth_method"`
 	Challenge   string `xmlrpc:"auth_challenge"`
@@ -39,7 +39,7 @@ type LJEditResponse struct {
 	Url    string `xmlrpc:"url"`
 }
 
-type loginRequest struct {
+type LoginRequest struct {
 	Username  string `xmlrpc:"username"`
 	Method    string `xmlrpc:"auth_method"`
 	Challenge string `xmlrpc:"auth_challenge"`
@@ -60,7 +60,7 @@ type DayCount struct {
 	Date  string `xmlrpc:"date"`
 }
 
-type getEventsRequest struct {
+type GetEventsRequest struct {
 	Username   string `xmlrpc:"username"`
 	Method     string `xmlrpc:"auth_method"`
 	Challenge  string `xmlrpc:"auth_challenge"`
@@ -73,29 +73,30 @@ type getEventsRequest struct {
 	Noprops    int    `xmlrpc:"noprops"`
 }
 
-type challengeResponse struct {
+type ChallengeResponse struct {
 	AuthScheme string `xmlrpc:"auth_scheme"`
 	Challenge  string
 	ExpireTime string `xmlrpc:"expire_time"`
 	ServerTime string `xmlrpc:"server_time"`
 }
 
-func (r challengeResponse) generateResponse(password string) string {
+func (r ChallengeResponse) generateResponse(password string) string {
 	ph := fmt.Sprintf("%x", md5.Sum([]byte(password)))
 	rh := fmt.Sprintf("%x", md5.Sum([]byte(r.Challenge+ph)))
 	return rh
 }
 
-func (lj *LJ) getChallenge() challengeResponse {
+func (lj *LJ) getChallenge() ChallengeResponse {
 	challengeResult := &struct {
-		challenge challengeResponse
+		Challenge ChallengeResponse
 	}{}
 	lj.limiter.Take()
 	err := lj.xmlrpcClient.Call("LJ.XMLRPC.getchallenge", nil, challengeResult)
 	if err != nil {
+		log.Fatal("Cannot get challenge", err)
 		panic(err)
 	}
-	return challengeResult.challenge
+	return challengeResult.Challenge
 }
 
 type LJ struct {
@@ -136,8 +137,8 @@ func (lj *LJ) Close() {
 }
 
 func (lj *LJ) Login() (*LoginResponse, error) {
-	type loginRequestWrapper struct {
-		request loginRequest
+	type LoginRequestWrapper struct {
+		Request LoginRequest
 	}
 
 	loginResponse := &struct {
@@ -146,8 +147,8 @@ func (lj *LJ) Login() (*LoginResponse, error) {
 
 	challengeResult := lj.getChallenge()
 	lj.limiter.Take()
-	err := lj.xmlrpcClient.Call("LJ.XMLRPC.login", loginRequestWrapper{
-		request: loginRequest{Username: lj.username, Method: "challenge", Version: 1, Challenge: challengeResult.Challenge, Response: challengeResult.generateResponse(lj.password)}}, loginResponse)
+	err := lj.xmlrpcClient.Call("LJ.XMLRPC.login", LoginRequestWrapper{
+		Request: LoginRequest{Username: lj.username, Method: "challenge", Version: 1, Challenge: challengeResult.Challenge, Response: challengeResult.generateResponse(lj.password)}}, loginResponse)
 	if err != nil {
 		log.Fatal("Got error on Login", err)
 		return nil, err
@@ -156,8 +157,8 @@ func (lj *LJ) Login() (*LoginResponse, error) {
 }
 
 func (lj *LJ) GetDayCounts() (*[]DayCount, error) {
-	type loginRequestWrapper struct {
-		Request loginRequest
+	type LoginRequestWrapper struct {
+		Request LoginRequest
 	}
 	dayCountsResponse := &struct {
 		Response struct {
@@ -166,8 +167,8 @@ func (lj *LJ) GetDayCounts() (*[]DayCount, error) {
 	}{}
 	challengeResult := lj.getChallenge()
 	lj.limiter.Take()
-	err := lj.xmlrpcClient.Call("LJ.XMLRPC.getdaycounts", loginRequestWrapper{
-		Request: loginRequest{Username: lj.username, Method: "challenge", Version: 1, Challenge: challengeResult.Challenge, Response: challengeResult.generateResponse(lj.password)}}, dayCountsResponse)
+	err := lj.xmlrpcClient.Call("LJ.XMLRPC.getdaycounts", LoginRequestWrapper{
+		Request: LoginRequest{Username: lj.username, Method: "challenge", Version: 1, Challenge: challengeResult.Challenge, Response: challengeResult.generateResponse(lj.password)}}, dayCountsResponse)
 
 	if err != nil {
 		log.Fatal("Cannot get days count", err)
@@ -179,7 +180,7 @@ func (lj *LJ) GetDayCounts() (*[]DayCount, error) {
 
 func (lj *LJ) GetEvents(date string) (*[]LJEntry, error) {
 	type GetEventsRequestWrapper struct {
-		request getEventsRequest
+		Request GetEventsRequest
 	}
 
 	events := &struct {
@@ -195,7 +196,7 @@ func (lj *LJ) GetEvents(date string) (*[]LJEntry, error) {
 	challengeResult := lj.getChallenge()
 	lj.limiter.Take()
 	err := lj.xmlrpcClient.Call("LJ.XMLRPC.getevents", GetEventsRequestWrapper{
-		request: getEventsRequest{
+		Request: GetEventsRequest{
 			Username: lj.username, Method: "challenge", Version: 1, Challenge: challengeResult.Challenge, Response: challengeResult.generateResponse(lj.password),
 			Selecttype: "day", Year: year, Month: month, Day: day, Noprops: 0,
 		}}, events)
@@ -208,7 +209,7 @@ func (lj *LJ) GetEvents(date string) (*[]LJEntry, error) {
 
 func (lj *LJ) EditEntry(itemid int, newText string, newSubject string, newSecurity string) (*LJEditResponse, error) {
 	type EditEntryRequestWrapper struct {
-		Request ljEditRequest
+		Request LJEditRequest
 	}
 	editResponse := &struct {
 		Response LJEditResponse
@@ -216,7 +217,7 @@ func (lj *LJ) EditEntry(itemid int, newText string, newSubject string, newSecuri
 	challengeResult := lj.getChallenge()
 	lj.limiter.Take()
 	err := lj.xmlrpcClient.Call("LJ.XMLRPC.editevent", EditEntryRequestWrapper{
-		Request: ljEditRequest{
+		Request: LJEditRequest{
 			Username: lj.username, Method: "challenge", Version: 1, Challenge: challengeResult.Challenge, Response: challengeResult.generateResponse(lj.password),
 			Lineendings: "unix", Itemid: itemid, Event: []byte(newText), Subject: newSubject, Security: newSecurity,
 		}}, editResponse)
