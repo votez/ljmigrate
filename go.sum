@@ -1,2 +1,6 @@
 alexejk.io/go-xmlrpc v0.4.0 h1:HvaeCuACuF2NBJruG90AJKc5JHRGj9vKxu2ltJntQR4=
 alexejk.io/go-xmlrpc v0.4.0/go.mod h1:M7f2OzqvZIWrN1LftR4uwW/bLpxrFoQYjWfm4gQB4JA=
+github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
+github.com/benbjohnson/clock v1.3.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
+go.uber.org/ratelimit v0.3.0 h1:IdZd9wqvFXnvLvSEBo0KPcGfkoBGNkpTHlrE3Rcjkjw=
+go.uber.org/ratelimit v0.3.0/go.mod h1:So5LG7CV1zWpY1sHe+DXTJqQvOx+FFPFaAs2SnoyBaI=
